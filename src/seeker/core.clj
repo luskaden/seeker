@@ -3,7 +3,8 @@
   (:use [clojure.data.zip.xml :only (attr text xml->)]
         [medley.core :only [interleave-all]]
         [clojure.set])
-  (:require [clojure.data.json :as json]
+  (:require [clojure.tools.namespace.repl :refer [refresh]]
+            [clojure.data.json :as json]
             [cheshire.core :refer :all]
             [clojure.pprint :as pp]
             [clojure.string :as str]
@@ -17,11 +18,8 @@
 ;;; File pointers
 
 (def far-dump "http#://dumps.wikimedia.org/enwiki/latest/enwiki-latest-abstract23.xml")
-
 (def local-dump "../seeker/resources/enwiki-latest-abstract23.xml")
-
 (def local-orig "../seeker/resources/enwiki-latest-abstract23-ORIGINAL.xml")
-
 (def json-file "../seeker/json/test.json")
 
 ;;; Useful aliases:
@@ -34,12 +32,12 @@
 ;;; Check existence of xml file in remote. If not parse the stored file
 ;;; called "ORIGINAL". Then Parse and zip the downloaded dump:
 
-(defn copy-dump [far local]
+(defn- copy-dump [far local]
   (with-open [ in    (io/input-stream   far)
                out   (io/output-stream  local)]
 			         (io/copy in out)))
 
-(defn copy-file [src dst]
+(defn- copy-file [src dst]
   (io/copy (io/file src) (io/file dst)))
 
 (if (.exists (io/file far-dump))
@@ -62,40 +60,30 @@
 ;;; Tags part:
 
 (def vector-of-tags [[:doc :title :url :abstract] ["doc" "title" "url" "abstract"]])
-
 (def of-dot-tags (first vector-of-tags))
-
 (def of-str-tags (second vector-of-tags))
-
 (def num-tags (-> vector-of-tags first count dec))
 
 ;;; Zip part:
 
 (def voices-dump (-> (xml-> zip-dump :doc (second of-dot-tags) text) (count) (dec)))
-
-(defn zip [type] (xml-> zip-dump :doc (get of-dot-tags type) text))
+(defn- zip [type] (xml-> zip-dump :doc (get of-dot-tags type) text))
 
 ;;; List part:
 
 (def all-titles (map #(rep % "Wikipedia: " "") (zip 1)))
-
 (def all-urls (zip 2))
-
 (def all-abstracts (zip 3))
-
 (def everything (interleave all-titles all-urls all-abstracts))
-
 (def lst1 (drop 1 of-dot-tags))
-
 (def lst2 (seq everything))
-
 (def med-list (->> (partition 3 lst2) (map #(zipmap % lst1)) (map map-invert) (sort-by :title)))
 
 
 ;;;; To JSON
 
 ;;; Saving the whole dump on a json file:
-(defn jsonify [num-refs]
+(defn- jsonify [num-refs]
   (generate-string (take num-refs med-list) {:pretty true}))
 
 
@@ -113,14 +101,32 @@
 
 (declare check)
 
-(defn start1 []
-  (check [:a :c :s :i :f] (read-line)))
+(defn- prompt [] (def ^:dynamic *inp* (read-line)) *inp*)
 
-(defn start2 []
-  (check [:a :c :i :f] (not empty? (read-line))))
+(defn- search1 []
+      (println "\nSearch engine for wikimedia dumps. Place your request in the following line: ")
+      (prompt)
+      (if (str/blank? *inp*)
+        (do
+          (println (str "\n" "You have to write something!"))
+          (recur))
+        (do
+          (println (str "\n" "Virtual GET method:\n" "http://my.techtest.example.com/search?q=" *inp*))
+          (check [:a :c :s :i :f] *inp*))))
 
-(defn check [rgx input]
-  (let [ whole-coll 	   (parse-string (slurp json-file) true)
+(defn- search2 []
+  (println (str "Pay attention! This is just a console simulation. There are no links.\nYou have to write it down the whole voice > "))
+      (prompt)
+      (if (str/blank? *inp*)
+        (do
+          (println (str "\n" "You have to write something!"))
+          (recur))
+        (println
+         (str "\n" "You want to retrieve this: " *inp*)
+         (check [:a :c :i :f] *inp*))))
+
+(defn- check [rgx input]
+  (let [ whole-coll 	     (parse-string (slurp json-file) true)
          nnil              (fn [m] (filter identity m))
          ind               (fn [v] (.indexOf (map :title whole-coll) v))
          value-of          (fn [k] (get (nth whole-coll (ind input)) k))
@@ -132,23 +138,30 @@
                                 (str/join) (java.util.regex.Pattern/compile)
                                 (matches-for) (vec))
          nm                (count (map vector matches))
-         results           (vector nm matches)]
+         results           (nth matches nm)]
 
          (cond
-            (> nm 10)        (do (println (str "I found " nm " possible matches: " matches " |> " ,
+            (> nm 10)        (do (println
+                                 (str "I found " nm " possible matches: " matches " |> " ,
                                                "You can now follow these suggestions.\n" ,
-                                               "Please, refine your search: ")) (start2))
+                                               "Please, refine your search: ")) (search2))
 
-            (= nm  2)        (do (println (str "Just two matches: " matches " |> " ,
-                                               "Retry following the suggestions.\n" ,
-                                               "Please, refine your search: ")) (start2))
+            (= nm  2)        (do (println
+                                 (str "Just two matches: " results " |> " ,
+                                               "Retry following the suggestions.")) (search2))
 
-            (= nm  1)        (do (println (str "Got it! Only one match:
-                                                Wikidump voice n." (ind matches) "\n"
+            (= nm  1)        (println
+                                (str "Got it! Only one match:\nWikidump voice n." (ind matches) "\n"
     				                                    "Title:     " matches "\n"
     				                                    "Url:       " (value-of :url) "\n"
-				                                        "Abstract:  " (value-of :abstract) "\n\n.")))
+				                                        "Abstract:  " (value-of :abstract) "\n\n."))
 
-            :else          (if (odd? (check rgx input))
-                            (println "No matches.")
-                            (do (println "You made some typo. Retry: ") (start2))))))
+            :else            (if (odd? rgx)
+                               (println "No matches.")
+                               (do
+                                 (println "You made some typo. Retry: ") (search2))))))
+
+(defn -main []
+  (search1))
+
+(-main)

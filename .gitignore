@@ -10,3 +10,12 @@ pom.xml.asc
 .hgignore
 .hg/
 /bin/
+.swn
+.swo
+.swp
+doc/
+LICENSE
+.settings/
+.project
+.classpath
+
