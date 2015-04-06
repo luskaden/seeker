@@ -1,4 +1,4 @@
-(defproject seeker "0.0.1"
+(defproject seeker "0.0.9"
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [org.clojure/data.zip "0.1.1"]
                  [org.clojure/data.json "0.2.6"]
