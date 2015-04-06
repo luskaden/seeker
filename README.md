@@ -1,32 +1,20 @@
 # Seeker
 
-FIXME:
-Seeker is a test program written in clojure. It search for a XML wikimedia dump,
-tries to download the smaller version, and trasform it locally in a ordered JSON.
-Then perform a search into the latter, printin all values from tags, using keywords
-from abstract and title tags (I just use title). If a single document matches a
-query returns title, url and abstract and save the single match again in a JSON
-form.
+Seeker is a test program written in clojure. It provides a search into a wikimedia dump.
+
+The target file is in XML format. It is intermittently hosted in dumps.wikimedia.org website.
+Seeker, after a check for his existence, prudently tries to store it locally.
+After this step, it trasforms the whole file in a ordered JSON.
+Finally, gives to the user the opportunity to perform an interactive search for a specific voice.
+The correct match is printed on screen and stored locally in another JSON file.
 
 ## Usage
 
-FIXME:
+Clone the project folder locally, cd into it and just launch "lein run"
+from a terminal. After that, simply follow the instruction on screen.
 
-Just run "lein repl" and then "search word".
+### Example of result json format
 
-## Examples
-
-(search "Sardinia")
-
-etc...
-
-Query example:
-
-GET	http://my.techtest.example.com/search?q=Holmsund
-
-It returns a JSON document like that:
-
-```
 {
   "q":"Holmsund",
   "results":[
@@ -47,20 +35,17 @@ County founded in 1923http:\/\/www.bolletinen."
 
 ### Wikimedia dumps locations
 
-http://dumps.wikimedia.org/enwiki.
+The dump is located in a subfolder of http://dumps.wikimedia.org/enwiki:
 
 http://dumps.wikimedia.org/enwiki/latest/enwiki-­‐latest-­‐abstract23.xml
 
 ### Notes
 
-They want a test-driven development (not repl-driven).
+The code was written in Emacs, with the inf-clojure package on. This just
+to avoid unnecessary error messages from the middleware (CIDER).
 
-OR/AND appropriate use of generative testing. ;CHECK for generative testing.
+It was builded up from both test-driven approach, with the very
+human readable framework expectations (http://jayfields.com/expectations/),
+and with the acceleration of leiningen repl, with use of (require 'seeker.core :reload-all).
 
-Solution in github with setup instruction for setup and run it beyond a "standard"
-Leiningen build: (lein deps, lein run, etc).
-
-The system has to search for a single keyword.
-If a document has not title or abstract can be rejected.
-If title, abstract and url is missing return emty string.
-Other links and sublinks could be rejected.
+The system is very simple and fits just a simple one-word search.
