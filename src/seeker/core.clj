@@ -148,12 +148,12 @@
 
 
 (defn- check [with-key rgx-switcher input]
-  (let [ whole-coll 	        (parse-string (slurp json-coll-file) true)
+  (let [ whole-coll 	      (parse-string (slurp json-coll-file) true)
          without-nil          (fn [m] (filter identity m))
          position             (fn [v] (.indexOf (map with-key whole-coll) v))
          value-of             (fn [k] (get (nth whole-coll (position input)) k)) ;potentially useful for test
          just-for             (fn [k] (vec (without-nil (map k whole-coll)))) ; k is a key like :title or :abstract
-         match     	          (fn [rgx filtered-coll] (-> (partial re-matches rgx) (map filtered-coll) (without-nil))) ;collection filtered by :title or :abstract
+         match     	      (fn [rgx filtered-coll] (-> (partial re-matches rgx) (map filtered-coll) (without-nil))) ;collection filtered by :title or :abstract
  	 rgx-stencil          {:a [".*"] :c ["(?i)"] :s [" "] :i [input] :f [".*"] :bs ["("] :bd [")"]}
          with-rgx-used        (->> (select-keys rgx-stencil rgx-switcher) ;regex corrently used
                                    (reverse)
