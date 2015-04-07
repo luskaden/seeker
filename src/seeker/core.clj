@@ -154,7 +154,7 @@
          value-of             (fn [k] (get (nth whole-coll (position input)) k)) ;potentially useful for test
          just-for             (fn [k] (vec (without-nil (map k whole-coll)))) ; k is a key like :title or :abstract
          match     	          (fn [rgx filtered-coll] (-> (partial re-matches rgx) (map filtered-coll) (without-nil))) ;collection filtered by :title or :abstract
- 	       rgx-stencil          {:a [".*"] :c ["(?i)"] :s [" "] :i [input] :f [".*"] :bs ["("] :bd [")"]}
+ 	 rgx-stencil          {:a [".*"] :c ["(?i)"] :s [" "] :i [input] :f [".*"] :bs ["("] :bd [")"]}
          with-rgx-used        (->> (select-keys rgx-stencil rgx-switcher) ;regex corrently used
                                    (reverse)
                                    (vals)
@@ -162,7 +162,7 @@
                                    (str/join)
                                    (java.util.regex.Pattern/compile))
          match-extractor      (fn [this-key] (vec (match with-rgx-used (just-for this-key)))) ;match use
-	       num-matches          (fn [this-key] (count (map vector (match-extractor this-key))))
+	 num-matches          (fn [this-key] (count (map vector (match-extractor this-key))))
          coll-matches         (fn [this-key] (str/join " ❈ "(apply list (match-extractor this-key))))
          nm                   (num-matches with-key)
          results              (coll-matches with-key)
