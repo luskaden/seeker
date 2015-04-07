@@ -29,20 +29,16 @@ from a terminal. After that, simply follow the instructions on screen.
 
 ### Locations
 
-The dump is originally located in: [http://dumps.wikimedia.org/enwiki/latest/enwiki‐latest‐abstract23.xml]
+The XML dump is originally located in: [http://dumps.wikimedia.org/enwiki/latest/enwiki‐latest‐abstract23.xml]
 (http://dumps.wikimedia.org/enwiki/latest/enwiki‐latest‐abstract23.xml)
+and stored locally in `../seeker/resources/` subfolder.
 
-The JSON results are located in the subfolder `../seeker/json/`.
-
-Whole reordered dump: `../seeker/json/collection.json`.
-
-Correct match: `../seeker/json/results.json`.
-
+The JSON results are located in `../seeker/json/`,
+namely `../seeker/json/collection.json` for the whole reordered dump,
+and `../seeker/json/results.json` for the correct matches. The second one is overwritten
+by the newer matches.
 
 ### Notes
 
 *Seeker* is written in Emacs, with the `inf-clojure` package on, just
-to avoid unnecessary error messages from the middleware (cider).
-
-It was builded up with the use of very human readable framework *expectations*
-[http://jayfields.com/expectations/](http://jayfields.com/expectations/), with the acceleration of *Leiningen repl*, using `(require 'seeker.core :reload-all)`, and the use of `printf` *breakpoints*.
+to avoid unnecessary error messages from the middleware (cider). It is built from scratch using the very human readable framework *expectations* [http://jayfields.com/expectations/](http://jayfields.com/expectations/), with the acceleration of *Leiningen repl*, using `(require 'seeker.core :reload-all)`, and the use of `printf` *breakpoints*.
