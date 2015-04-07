@@ -20,17 +20,22 @@
 (def far-dump "http#://dumps.wikimedia.org/enwiki/latest/enwiki-latest-abstract23.xml")
 (def local-dump "../seeker/resources/enwiki-latest-abstract23.xml")
 (def local-orig "../seeker/resources/enwiki-latest-abstract23-ORIGINAL.xml")
-(def json-file "../seeker/json/test.json")
+(def json-coll-file "../seeker/json/collection.json")
+(def json-results "../seeker/json/results.json")
 
 ;;; Useful aliases:
 
 (def rep str/replace)
+(defn- spawn []
+  (require 'seeker.core :reload-all))
 
 ;;;; I0 Operations
 
-;;; Copy the dump, from far to local, because file is larger than 23 mb.
-;;; Check existence of xml file in remote. If not parse the stored file
-;;; called "ORIGINAL". Then Parse and zip the downloaded dump:
+;;; Check existence of XML file in remote. If present performs a download.
+;;; If not present, is forced to use the previously stored file called "ORIGINAL".
+;;; After that, parse and zip the selected dump:
+
+;;; HACK > check a try-catch with slurp.
 
 (defn- copy-dump [far local]
   (with-open [ in    (io/input-stream   far)
@@ -46,16 +51,14 @@
 
 (def zip-dump (->> local-dump xml/parse zip/xml-zip))
 
-
 ;;;; Tags creation
 
 ;;; Fresh creation of proper keys and strings, for possible future use.
 ;;; Counts how many keys without :doc (num-tags).
-;;; count how many items there are in the wikipedia dump.
+;;; Counts how many items there are in the wikipedia dump.
 ;;; Retrieve infos from the parsed file.
 ;;; Erase "Wikipedia: ", part to get the list sorted.
-;;; Sum of num-tags.
-;;; Assemble the lists and order keys and values.
+;;; Create an order list of keys and values.
 
 ;;; Tags part:
 
@@ -79,89 +82,114 @@
 (def lst2 (seq everything))
 (def med-list (->> (partition 3 lst2) (map #(zipmap % lst1)) (map map-invert) (sort-by :title)))
 
-
 ;;;; To JSON
 
 ;;; Saving the whole dump on a json file:
 (defn- jsonify [num-refs]
   (generate-string (take num-refs med-list) {:pretty true}))
 
+;;;; Main function area:
 
-;;;; Title seeker from the JSON file
-
-;;; Possible place for (search fn) duplicate of (main fn).
-
-;;;; Main function:
-
-;;; Clean the whole collection by the nil results and checks
-;;; if the seeked string pops out from there. Returns
-;;; the exact position of the string, related to the whole
+;;; Checks whether the seeked string pops out from there.
+;;; Returns the exact position of the string, related to the whole
 ;;; collection. Then take the values from the matched submap
 ;;; and, finally composes the result.
 
-(declare check)
+(declare check search3)
 
-(defn- prompt [] (def ^:dynamic *inp* (read-line)) *inp*)
+(defn- prompt []
+  (def ^:dynamic *inp* (read-line)) *inp*)
+
+(defn- prompt-key-choice []
+  (def ^:dynamic *key* (read-line))
+  (cond
+    (= *key* "t") (def ^:dynamic *key* :title)
+    (= *key* "a") (def ^:dynamic *key* :abstract)
+    :else (do (println (str "\n" "You have to choice between t or a!"))
+          (recur))))
+
+(defn- retrieved [input]
+  (println (str "\n" "You want to retrieve this: " input)))
 
 (defn- search1 []
-      (println "\nSearch engine for wikimedia dumps. Place your request in the following line: ")
+      (println (str "\nSearch engine for wikimedia dumps. Do you want to search by titles or abstracts?\n"
+               "Remember: abstract query could be a little dispersive... So choose, t/a?\n"))
+      (prompt-key-choice)
+      (println "\nRight. Place now your request in the next line:\n")
       (prompt)
       (if (str/blank? *inp*)
-        (do
-          (println (str "\n" "You have to write something!"))
-          (recur))
-        (do
-          (println (str "\n" "Virtual GET method:\n" "http://my.techtest.example.com/search?q=" *inp*))
-          (check [:a :c :s :i :f] *inp*))))
+        (do (println (str "\n" "You have to write something!"))
+            (recur))
+        (do (println (str "\n" "Virtual GET method:\n" "http://my.techtest.example.com/search?q=" *inp* "\n"))
+            (check *key* [:a :c :s :i :f] *inp*))))
+
 
 (defn- search2 []
-  (println (str "Pay attention! This is just a console simulation. There are no links.\nYou have to write it down the whole voice > "))
-      (prompt)
-      (if (str/blank? *inp*)
-        (do
-          (println (str "\n" "You have to write something!"))
+  (println
+   (str "Pay attention! This is just a console simulation: there are no clickable links.\n"
+        "Just write the voice down. I will recheck it for you:\n"))
+   (search3))
+
+
+(defn- search3 []
+  (prompt)
+    (if (str/blank? *inp*)
+      (do (println (str "\n" "You have to write something!"))
           (recur))
-        (println
-         (str "\n" "You want to retrieve this: " *inp*)
-         (check [:a :c :i :f] *inp*))))
+      (do (retrieved *inp*)
+          (check *key* [:a :c :i :f] *inp*))))
 
-(defn- check [rgx input]
-  (let [ whole-coll 	     (parse-string (slurp json-file) true)
-         nnil              (fn [m] (filter identity m))
-         ind               (fn [v] (.indexOf (map :title whole-coll) v))
-         value-of          (fn [k] (get (nth whole-coll (ind input)) k))
-         by-title          (-> (map :title whole-coll) (nnil) (vec))
-         matches-for       (fn [q] (-> (partial re-matches q) (map by-title) (nnil)))
-         rgx-m             {:a [".*"] :c ["(?i)"] :s [" "] :i [input] :f [".*"]}
-         matches           (->> (select-keys rgx-m rgx)
-                                (reverse) (vals) (apply concat)
-                                (str/join) (java.util.regex.Pattern/compile)
-                                (matches-for) (vec))
-         nm                (count (map vector matches))
-         results           (nth matches nm)]
 
-         (cond
-            (> nm 10)        (do (println
-                                 (str "I found " nm " possible matches: " matches " |> " ,
-                                               "You can now follow these suggestions.\n" ,
-                                               "Please, refine your search: ")) (search2))
+(defn- prompt-json-save [position input]
+  (let [final-map   (fn [res in] {:q in , :results [res]})
+        final-json  (final-map (nth med-list position) input)]
+    (spit json-results (generate-string final-json {:pretty true}))
+    (def ^:dynamic *gotcha* (parse-string (slurp json-results) true))))
 
-            (= nm  2)        (do (println
-                                 (str "Just two matches: " results " |> " ,
-                                               "Retry following the suggestions.")) (search2))
 
-            (= nm  1)        (println
-                                (str "Got it! Only one match:\nWikidump voice n." (ind matches) "\n"
-    				                                    "Title:     " matches "\n"
-    				                                    "Url:       " (value-of :url) "\n"
-				                                        "Abstract:  " (value-of :abstract) "\n\n."))
+(defn- check [with-key rgx-switcher input]
+  (let [ whole-coll 	        (parse-string (slurp json-coll-file) true)
+         without-nil          (fn [m] (filter identity m))
+         position             (fn [v] (.indexOf (map with-key whole-coll) v))
+         value-of             (fn [k] (get (nth whole-coll (position input)) k)) ;potentially useful for test
+         just-for             (fn [k] (vec (without-nil (map k whole-coll)))) ; k is a key like :title or :abstract
+         match     	          (fn [rgx filtered-coll] (-> (partial re-matches rgx) (map filtered-coll) (without-nil))) ;collection filtered by :title or :abstract
+ 	       rgx-stencil          {:a [".*"] :c ["(?i)"] :s [" "] :i [input] :f [".*"] :bs ["("] :bd [")"]}
+         with-rgx-used        (->> (select-keys rgx-stencil rgx-switcher) ;regex corrently used
+                                   (reverse)
+                                   (vals)
+                                   (apply concat)
+                                   (str/join)
+                                   (java.util.regex.Pattern/compile))
+         match-extractor      (fn [this-key] (vec (match with-rgx-used (just-for this-key)))) ;match use
+	       num-matches          (fn [this-key] (count (map vector (match-extractor this-key))))
+         coll-matches         (fn [this-key] (str/join " ❈ "(apply list (match-extractor this-key))))
+         nm                   (num-matches with-key)
+         results              (coll-matches with-key)
+         got-it               (fn [p] (println (str "\nGot it!\n\nWikidump voice n." p "/" voices-dump ".")))
+         print-results-for    (fn [n] (println (str (str/capitalize (get of-str-tags n)) ": " ((get of-dot-tags n) (first(:results *gotcha*))))))]
 
-            :else            (if (odd? rgx)
-                               (println "No matches.")
-                               (do
-                                 (println "You made some typo. Retry: ") (search2))))))
+           (cond
+
+             (> nm 2)        (do (println
+                                  (str "I have found " nm " possible matches: ❈ " results ". ❈ " ,
+                                       "You can now follow these suggestions so, please, refine your search.")) (search2))
+
+             (= nm 2)        (do (println
+                                  (str "Just two matches: " results " ➽ " ,
+                                       "Now it is easy. But...")) (search2))
+
+             (= nm 1)        (do (prompt-json-save (position results) (first (match-extractor with-key)))
+                                (got-it (position results))
+                                (print-results-for 1)         ; was (first (match-extractor :title))
+                                (print-results-for 2)         ; was (value-of :url)
+                                (print-results-for 3)         ; was (value-of :abstract)
+                                (println
+                                   (str "\nI saved a copy on a json file. You can find the results under json/results.json. Check it!\n\n\n")))
+
+             :else            (if (even? (count rgx-switcher))
+                              (println "No matches. Bye!\n\n")
+                              (check *key* [:a :c :i :f] input)))))
 
 (defn -main []
   (search1))
-
-(-main)
