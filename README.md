@@ -9,7 +9,7 @@ in a new JSON file.
 Clone the project locally, `cd` into it and use `lein run` to launch it.
 Then simply follow the instructions on screen.
 
-### Example of a result in a JSON format
+### Example of a JSON result
 
 ```
 {
