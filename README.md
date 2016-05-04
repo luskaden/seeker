@@ -1,16 +1,13 @@
 # Seeker
 
-*Seeker* is a test program written in Clojure. It provides a search into a wikimedia dump.
-
-The target file is in XML format. It is intermittently hosted in `dumps.wikimedia.org` website.
-After a check of its existence, *seeker* tries prudently to store it locally.
-After this step, the whole file is converted in a ordered JSON.
-Finally, *seeker* gives to the user the opportunity to perform an interactive search for a specific voice. Correct matches are printed on screen and stored locally in another tiny JSON file.
+*Seeker* is a Clojure exercise. It converts a XML file retrieved from `dumps.wikimedia.org` to JSON,
+performs a keyword search on it and finally prints correct matches on screen, after storing them locally
+in a new JSON file.
 
 ## Usage
 
-Clone the project locally, `cd` into it and just launch `lein run`
-from a terminal. After that, simply follow the instructions on screen.
+Clone the project locally, `cd` into it and use `lein run` to launch it.
+Then simply follow the instructions on screen.
 
 ### Example of a result in a JSON format
 
@@ -29,16 +26,18 @@ from a terminal. After that, simply follow the instructions on screen.
 
 ### Locations
 
-The XML dump is originally located in: [http://dumps.wikimedia.org/enwiki/latest/enwiki‐latest‐abstract23.xml]
+The XML dump was originally located in: [http://dumps.wikimedia.org/enwiki/latest/enwiki‐latest‐abstract23.xml]
 (http://dumps.wikimedia.org/enwiki/latest/enwiki‐latest‐abstract23.xml)
 and stored locally in `../seeker/resources/` subfolder.
 
-The JSON results are located in `../seeker/json/`,
+The JSON results would be located in `../seeker/json/`,
 namely `../seeker/json/collection.json` for the whole reordered dump,
-and `../seeker/json/results.json` for the correct matches. The second one is overwritten
-by the newer matches.
+and `../seeker/json/results.json` for the correct matches.
+The second one will be overwritten after new successfully searches.
 
-### Notes
+### Tech notes
 
-*Seeker* is written in Emacs, with the `inf-clojure` package on, just
-to avoid unnecessary error messages from the middleware (cider). It is built from scratch using the very human readable framework *expectations* [http://jayfields.com/expectations/](http://jayfields.com/expectations/), with the acceleration of *Leiningen repl*, using `(require 'seeker.core :reload-all)`, and the use of `printf` *breakpoints*.
+- Written in Emacs, with the `inf-clojure` package, to avoid unwanted error messages from the middleware (Cider);
+- framework *expectations* was used [http://jayfields.com/expectations/](http://jayfields.com/expectations/);
+- to speed up all the process *Leiningen repl* , using `(require 'seeker.core :reload-all)`;
+- old school `printf` *breakpoints*.
